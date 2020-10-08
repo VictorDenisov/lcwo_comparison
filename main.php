@@ -113,6 +113,29 @@ function print_array($a) {
 	}
 }
 
+# First span has incorrect chars, second span has only dashes.
+function merge_error_spans($sp1, $sp2) {
+	$l1 = mb_strlen($sp1);
+	$l2 = mb_strlen($sp2);
+	$mspan = '';
+	if ($l1 > $l2) {
+		$mspan = $sp1;
+	} else {
+		$mspan = $sp1 . mb_substr($sp2, $l1, $l2 - $l1);
+	}
+	$err = mb_strlen($mspan);
+	$result = '';
+	for ($i = 0; $i < mb_strlen($mspan); $i++) {
+		$c = mb_substr($mspan, $i, 1);
+		if ($c == '-') {
+			$result .= colorspan($c, 'blue');
+		} else {
+			$result .= colorspan($c, 'red');
+		}
+	}
+	return array($result, $err);
+}
+
 # This function calculates the number of missed characters in the original strings.
 # Any extra characters in the user's input are not considered mistakes.
 function new_check($w1, $w2) {
@@ -136,40 +159,57 @@ function new_check($w1, $w2) {
 			}
 		}
 	}
-	$err = $l1 - $a[$l1][$l2];
+	$err = 0;
 	$i = $l1;
 	$j = $l2;
+	$error_span1 = '';
+	$error_span2 = '';
 	while ($i > 0 || $j > 0) {
 		$new_i = $i;
 		$new_j = $j;
 		$value = '';
+
+		if (($i > 0) && ($j > 0) && (mb_substr($w1, $i - 1, 1) == mb_substr($w2, $j - 1, 1)) && ($a[$i][$j] == $a[$i - 1][$j - 1] + 1 )) {
+			$error_span = merge_error_spans($error_span1, $error_span2);
+			$ret = $error_span[0] . $ret;
+			$ret = colorspan(mb_substr($w1, $i - 1, 1), 'green') . $ret;
+			$err = $err + $error_span[1];
+			$error_span1 = '';
+			$error_span2 = '';
+			$i = $i - 1;
+			$j = $j - 1;
+			continue;
+		}
+
 		if (($j > 0) && ($a[$i][$j - 1] == $a[$i][$j])) {
-			$new_i = $i;
-			$new_j = $j - 1;
+			$i = $i;
+			$j = $j - 1;
+			$error_span2 = '-' . $error_span2;
+			continue;
 		}
 		if (($i > 0) && ($a[$i - 1][$j] == $a[$i][$j])) {
-			$new_i = $i - 1;
-			$new_j = $j;
-			$value = colorspan(mb_substr($w1, $i - 1, 1), 'red');
+			$error_span1 = mb_substr($w1, $i - 1, 1) . $error_span1;
+			$i = $i - 1;
+			$j = $j;
+			continue;
 		}
-		if (($i > 0) && ($j > 0) && (mb_substr($w1, $i - 1, 1) == mb_substr($w2, $j - 1, 1)) && ($a[$i][$j] == $a[$i - 1][$j - 1] + 1 )) {
-			$new_i = $i - 1;
-			$new_j = $j - 1;
-			$value = colorspan(mb_substr($w1, $i - 1, 1), 'green');
-		}
-		$i = $new_i;
-		$j = $new_j;
-		$ret = $value . $ret;
 	}
+	$error_span = merge_error_spans($error_span1, $error_span2);
+	$ret = $error_span[0] . $ret;
+	$err = $err + $error_span[1];
 
-	print_array($a);
 	return array($ret, $err);
 }
 
 #$s = check('abcde', 'xbe');
 #$s = new_check('abcde', 'xbe');
 #$s = new_check('abcde', 'abcde');
-$s = new_check('abcde', 'xce');
+#$s = new_check('abcde', 'xce');
+#$s = new_check('ORXDK', 'ORXDXK');
+#$s = new_check('MCUFH', 'KMCUCCH');
+$s = new_check('MCUFH', 'YYYMCxxVFHXXX');
+#$s = merge_error_spans('abcde', '-------');
+#print($s)
 
 print_r($s[0]);
 print('<br>');
