@@ -147,14 +147,23 @@ function new_check($w1, $w2) {
 	$a = array_fill(0, $l1 + 1, array_fill(0, $l2 + 1, 0));
 	$a[0][0] = 0;
 	for ($i = 1; $i <= $l1; $i++) {
+		$a[$i][0] = $a[$i - 1][0] + 1;
+	}
+	for ($j = 1; $j <= $l2; $j++) {
+		$a[0][$j] = $a[0][$j - 1] + 1;
+	}
+	for ($i = 1; $i <= $l1; $i++) {
 		for ($j = 1; $j <= $l2; $j++) {
-			$a[$i][$j] = $a[$i - 1][$j];
-			if ($a[$i][$j - 1] > $a[$i][$j]) {
-				$a[$i][$j] = $a[$i][$j - 1];
+			$a[$i][$j] = $a[$i - 1][$j] + 1;
+			if ($a[$i - 1][$j - 1] + 1 < $a[$i][$j]) {
+				$a[$i][$j] = $a[$i - 1][$j - 1] + 1;
+			}
+			if ($a[$i][$j - 1] + 1 < $a[$i][$j]) {
+				$a[$i][$j] = $a[$i][$j - 1] + 1;
 			}
 			if (mb_substr($w1, $i - 1, 1) == mb_substr($w2, $j -1, 1)) {
-				if ($a[$i - 1][$j - 1] + 1 > $a[$i][$j]) {
-					$a[$i][$j] = $a[$i - 1][$j - 1] + 1;
+				if ($a[$i - 1][$j - 1] < $a[$i][$j]) {
+					$a[$i][$j] = $a[$i - 1][$j - 1];
 				}
 			}
 		}
@@ -169,7 +178,7 @@ function new_check($w1, $w2) {
 		$new_j = $j;
 		$value = '';
 
-		if (($i > 0) && ($j > 0) && (mb_substr($w1, $i - 1, 1) == mb_substr($w2, $j - 1, 1)) && ($a[$i][$j] == $a[$i - 1][$j - 1] + 1 )) {
+		if (($i > 0) && ($j > 0) && (mb_substr($w1, $i - 1, 1) == mb_substr($w2, $j - 1, 1)) && ($a[$i][$j] == $a[$i - 1][$j - 1] )) {
 			$error_span = merge_error_spans($error_span1, $error_span2);
 			$ret = $error_span[0] . $ret;
 			$ret = colorspan(mb_substr($w1, $i - 1, 1), 'green') . $ret;
@@ -180,14 +189,21 @@ function new_check($w1, $w2) {
 			$j = $j - 1;
 			continue;
 		}
+		if (($i > 0) && ($j > 0) && ($a[$i - 1][$j - 1] + 1 == $a[$i][$j])) {
+			$error_span1 = mb_substr($w1, $i - 1, 1) . $error_span1;
+			$error_span2 = '-' . $error_span2;
+			$i = $i - 1;
+			$j = $j - 1;
+			continue;
+		}
 
-		if (($j > 0) && ($a[$i][$j - 1] == $a[$i][$j])) {
+		if (($j > 0) && ($a[$i][$j - 1] + 1 == $a[$i][$j])) {
 			$i = $i;
 			$j = $j - 1;
 			$error_span2 = '-' . $error_span2;
 			continue;
 		}
-		if (($i > 0) && ($a[$i - 1][$j] == $a[$i][$j])) {
+		if (($i > 0) && ($a[$i - 1][$j] + 1 == $a[$i][$j])) {
 			$error_span1 = mb_substr($w1, $i - 1, 1) . $error_span1;
 			$i = $i - 1;
 			$j = $j;
@@ -201,13 +217,28 @@ function new_check($w1, $w2) {
 	return array($ret, $err);
 }
 
-#$s = check('abcde', 'xbe');
-#$s = new_check('abcde', 'xbe');
-#$s = new_check('abcde', 'abcde');
-#$s = new_check('abcde', 'xce');
-#$s = new_check('ORXDK', 'ORXDXK');
-#$s = new_check('MCUFH', 'KMCUCCH');
+function test($s, $y) {
+	if ($s[1] != $y) {
+		print('Error<br>');
+		print_r($s[0]);
+		print('<br>');
+		print_r($s[1]);
+		print('<br>');
+	}
+}
+
+$s = new_check('abcde', 'xbe');
+test($s, 3);
+$s = new_check('abcde', 'abcde');
+test($s, 0);
+$s = new_check('ORXDK', 'ORXDXK');
+test($s, 1);
+$s = new_check('MCUFH', 'KMCUCCH');
+test($s, 3);
 $s = new_check('MCUFH', 'YYYMCxxVFHXXX');
+test($s, 9);
+$s = new_check('IIAPS', 'ISAPS');
+test($s, 1);
 #$s = merge_error_spans('abcde', '-------');
 #print($s)
 
